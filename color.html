@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Query-Color Demo</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #000000;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+
+  /* Make the whole "project" visibly use the color */
+  .wrap {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    gap: 1rem;
+    padding: 3rem;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.08);
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(0,0,0,0.06);
+    max-width: 720px;
+    width: 100%;
+  }
+
+  code {
+    display: inline-block;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.06);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace;
+  }
+
+  small { opacity: 0.85; display:block; margin-top:.5rem; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="card">
+      <h1 id="title">Query Color Demo</h1>
+      <p id="desc">This page uses the hex color from the URL query <code>?color=HEX</code>.</p>
+      <p>
+        Detected color: <code id="hex">—</code>
+      </p>
+      <small>Example URL: <code>?color=FF0000</code> or <code>?color=#0f0</code></small>
+    </div>
+  </div>
+
+<script>
+(function () {
+  const DEFAULT = 'EDEFF2'; // fallback hex (no #)
+  const params = new URLSearchParams(location.search);
+  let raw = params.get('color');
+
+  // If user provided nothing, try to fall back to the whole query-string (if they really meant "?FF0000")
+  if (!raw && location.search && location.search.startsWith('?') && location.search.length > 1) {
+    // remove leading '?'
+    const maybe = location.search.slice(1);
+    // ignore cases like "color=..." handled above, only use whole raw if it looks like a hex
+    if (/^#?[0-9A-Fa-f]{3}$/.test(maybe) || /^#?[0-9A-Fa-f]{6}$/.test(maybe)) {
+      raw = maybe;
+    }
+  }
+
+  // Normalize: remove leading '#'
+  if (raw && raw.startsWith('#')) raw = raw.slice(1);
+
+  // Validate: only 3 or 6 hex digits
+  const valid = raw && (/^[0-9A-Fa-f]{3}$/.test(raw) || /^[0-9A-Fa-f]{6}$/.test(raw));
+  const hex = (valid ? raw : DEFAULT).toUpperCase();
+
+  // If 3-digit hex, expand to 6-digit for computations (#abc -> #aabbcc)
+  const expand = (h) => h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+
+  const fullHex = expand(hex);
+
+  // Convert to RGB numbers
+  const r = parseInt(fullHex.slice(0,2), 16);
+  const g = parseInt(fullHex.slice(2,4), 16);
+  const b = parseInt(fullHex.slice(4,6), 16);
+
+  // Determine readable foreground color using YIQ / luminance approximation
+  // formula: (r*299 + g*587 + b*114)/1000
+  const yiq = (r*299 + g*587 + b*114) / 1000;
+  const fg = yiq >= 128 ? '#000000' : '#FFFFFF';
+
+  // Apply to :root CSS variables
+  document.documentElement.style.setProperty('--bg', '#' + fullHex);
+  document.documentElement.style.setProperty('--fg', fg);
+
+  // Update UI text
+  document.getElementById('hex').textContent = '#' + fullHex + (valid ? '' : ' (invalid param, used default)');
+  if (!valid) {
+    document.getElementById('desc').textContent = 'No valid hex found in ?color — using default.';
+  }
+
+  // Optional: also tint card background for nicer contrast
+  const card = document.getElementById('card');
+  // create a faint overlay for the card by computing 0.12 alpha of opposite color
+  card.style.background = 'linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))';
+  card.style.borderColor = 'rgba(0,0,0,0.06)';
+})();
+</script>
+</body>
+</html>
