@@ -1,23 +1,7 @@
-<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Color from URL</title>
-<style>
-html,body{margin:0;height:100%;display:grid;place-items:center;font:2rem sans-serif;color:#000}
-</style>
-</head>
-<body>
-<script>
-let p=new URLSearchParams(location.search),c=p.get("color")||location.search.slice(1);
+<!doctype html><html><body><script>
+let c=new URLSearchParams(location.search).get("color")||location.search.slice(1);
 if(c?.startsWith("#"))c=c.slice(1);
 if(!/^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c||""))c="ededf2";
 if(c.length===3)c=c.split("").map(x=>x+x).join("");
 document.body.style.background="#"+c;
-// pick text color for contrast
-let r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);
-document.body.style.color=(r*299+g*587+b*114)/1000>=128?"#000":"#fff";
-document.body.textContent="#"+c;
-</script>
-</body>
-</html>
+</script></body></html>
